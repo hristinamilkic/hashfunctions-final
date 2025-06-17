@@ -186,14 +186,17 @@ public class HashAnalysisGUI extends Application {
         collisionTable.setEditable(false);
         collisionTable.setPlaceholder(new Label("Run analysis to see collision test results"));
         
+        // Hash Function: The name of the hash algorithm being analyzed
         TableColumn<CollisionData, String> hashCol = new TableColumn<>("Hash Function");
         hashCol.setCellValueFactory(data -> data.getValue().hashNameProperty());
         hashCol.setPrefWidth(200);
 
+        // Collisions Found: The number of times two different inputs produced the same hash (collision) during testing
         TableColumn<CollisionData, Integer> collisionsCol = new TableColumn<>("Collisions Found");
         collisionsCol.setCellValueFactory(data -> data.getValue().collisionsProperty().asObject());
         collisionsCol.setPrefWidth(150);
 
+        // Collision Rate: The ratio of collisions to total tests (lower is better)
         TableColumn<CollisionData, Double> rateCol = new TableColumn<>("Collision Rate");
         rateCol.setCellValueFactory(data -> data.getValue().rateProperty().asObject());
         rateCol.setPrefWidth(150);
@@ -220,10 +223,12 @@ public class HashAnalysisGUI extends Application {
         avalancheTable.setEditable(false);
         avalancheTable.setPlaceholder(new Label("Run analysis to see avalanche effect results"));
 
+        // Hash Function: The name of the hash algorithm being analyzed
         TableColumn<AvalancheData, String> hashCol2 = new TableColumn<>("Hash Function");
         hashCol2.setCellValueFactory(data -> data.getValue().hashNameProperty());
         hashCol2.setPrefWidth(200);
 
+        // Avalanche Effect: The average proportion of output bits that change when a single input bit is flipped (higher is better)
         TableColumn<AvalancheData, Double> effectCol = new TableColumn<>("Avalanche Effect");
         effectCol.setCellValueFactory(data -> data.getValue().effectProperty().asObject());
         effectCol.setPrefWidth(150);
@@ -239,6 +244,7 @@ public class HashAnalysisGUI extends Application {
             }
         });
 
+        // Standard Deviation: The variability of the avalanche effect (lower means more consistent avalanche behavior)
         TableColumn<AvalancheData, Double> stdDevCol = new TableColumn<>("Standard Deviation");
         stdDevCol.setCellValueFactory(data -> data.getValue().stdDevProperty().asObject());
         stdDevCol.setPrefWidth(150);
@@ -306,60 +312,62 @@ public class HashAnalysisGUI extends Application {
             collisionResults.clear();
             avalancheResults.clear();
 
-            CompletableFuture.runAsync(() -> {
-                double progress = 0;
-                double increment = 1.0 / selectedFiles.size();
+            // Collect all analysis futures
+            List<CompletableFuture<Void>> allFutures = new ArrayList<>();
+            double totalTasks = selectedFiles.size() * hashFunctions.size();
+            final double[] completedTasks = {0};
 
-                for (File file : selectedFiles) {
-                    try {
-                        Path filePath = file.toPath();
-                        benchmark.runBenchmark(filePath);
-                        runAdvancedTests(filePath, 10000, 4);
-
-                        progress += increment;
-                        final double currentProgress = progress;
-                        Platform.runLater(() -> {
-                            progressBar.setProgress(currentProgress);
-                            statusLabel.setText("Analyzing: " + file.getName());
-                        });
-                    } catch (IOException ex) {
-                        Platform.runLater(() -> {
-                            statusLabel.setText("Error analyzing " + file.getName());
-                            showError("Analysis Error", "Error analyzing file: " + file.getName(), ex);
-                        });
-                    }
+            for (File file : selectedFiles) {
+                try {
+                    Path filePath = file.toPath();
+                    benchmark.runBenchmark(filePath);
+                    allFutures.addAll(runAdvancedTests(filePath, 10000, 4, totalTasks, completedTasks));
+                } catch (IOException ex) {
+                    Platform.runLater(() -> {
+                        statusLabel.setText("Error analyzing " + file.getName());
+                        showError("Analysis Error", "Error analyzing file: " + file.getName(), ex);
+                    });
                 }
+            }
 
-                Platform.runLater(() -> {
-                    progressBar.setVisible(false);
-                    statusLabel.setText("Analysis complete");
-                    displayResults();
-                    updateDetailedResults();
+            // Wait for all analyses to finish, then update UI
+            CompletableFuture.allOf(allFutures.toArray(new CompletableFuture[0]))
+                .whenComplete((v, ex) -> {
+                    Platform.runLater(() -> {
+                        progressBar.setVisible(false);
+                        statusLabel.setText("Analysis complete");
+                        displayResults();
+                        updateDetailedResults();
+                    });
                 });
-            });
         }
     }
 
-    private void runAdvancedTests(Path filePath, int iterations, int threads) throws IOException {
+    private List<CompletableFuture<Void>> runAdvancedTests(Path filePath, int iterations, int threads, double totalTasks, double[] completedTasks) throws IOException {
         byte[] data = Files.readAllBytes(filePath);
         String fileName = filePath.getFileName().toString();
-        
+
         collisionResults.put(fileName, new ArrayList<>());
         avalancheResults.put(fileName, new ArrayList<>());
-        
+
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
         for (HashFunction function : hashFunctions) {
-            CompletableFuture.runAsync(() -> {
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
                 try {
                     // Run collision tests
                     CollisionTest collisionTest = new CollisionTest(function, iterations, threads);
                     CollisionTest.CollisionTestResult collisionResult = collisionTest.runTests();
-                    collisionResults.get(fileName).add(collisionResult);
-                    
+                    synchronized (collisionResults) {
+                        collisionResults.get(fileName).add(collisionResult);
+                    }
+
                     // Run avalanche tests
                     AvalancheTest avalancheTest = new AvalancheTest(function, iterations);
                     AvalancheTest.AvalancheTestResult avalancheResult = avalancheTest.runTests();
-                    avalancheResults.get(fileName).add(avalancheResult);
-                    
+                    synchronized (avalancheResults) {
+                        avalancheResults.get(fileName).add(avalancheResult);
+                    }
+
                     Platform.runLater(() -> {
                         results.add(new HashBenchmark.BenchmarkResult(
                             function.getName(),
@@ -368,6 +376,10 @@ public class HashAnalysisGUI extends Application {
                             function.getHashLength(),
                             function.getCollisionRate(data)
                         ));
+                        // Update progress bar
+                        completedTasks[0]++;
+                        progressBar.setProgress(completedTasks[0] / totalTasks);
+                        statusLabel.setText(String.format("Analyzing... (%.0f%%)", 100 * completedTasks[0] / totalTasks));
                     });
                 } catch (Exception e) {
                     Platform.runLater(() -> {
@@ -375,7 +387,9 @@ public class HashAnalysisGUI extends Application {
                     });
                 }
             });
+            futures.add(future);
         }
+        return futures;
     }
 
     private void displayResults() {
@@ -433,9 +447,9 @@ public class HashAnalysisGUI extends Application {
         collisionChart.getData().add(collisionSeries);
 
         // set chart sizes
-        speedChart.setPrefSize(300, 200);
-        avalancheChart.setPrefSize(300, 200);
-        collisionChart.setPrefSize(300, 200);
+        speedChart.setPrefSize(500, 350); // Larger chart
+        avalancheChart.setPrefSize(500, 350); // Larger chart
+        collisionChart.setPrefSize(500, 350); // Larger chart
 
         // create container for charts
         HBox chartsBox = new HBox(20);
