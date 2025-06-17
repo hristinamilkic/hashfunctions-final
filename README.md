@@ -1,4 +1,4 @@
-# Hash Functions Analysis Tool
+# Hash Functions Analysis Tool - Hristina Milkić ZAVRŠNI ISPIT / KiBP
 
 A comprehensive Java application for analyzing and comparing various cryptographic hash functions. This tool provides detailed insights into hash function performance, security characteristics, and statistical properties.
 
