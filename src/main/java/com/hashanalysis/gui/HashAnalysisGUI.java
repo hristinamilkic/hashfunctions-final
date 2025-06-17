@@ -56,7 +56,7 @@ public class HashAnalysisGUI extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("Hash Functions Analysis");
+        primaryStage.setTitle("Analiza hash funkcija");
         
         // main layout
         BorderPane mainLayout = new BorderPane();
@@ -71,23 +71,28 @@ public class HashAnalysisGUI extends Application {
         tabPane.getStyleClass().add("content-tabs");
         
         // results tab
-        Tab resultsTab = new Tab("Results");
+        Tab resultsTab = new Tab("Rezultati");
         resultsTab.setClosable(false);
         resultsContainer = new VBox(10);
         resultsContainer.setPadding(new Insets(10));
         resultsTab.setContent(resultsContainer);
         
         // settings tab
-        Tab settingsTab = new Tab("Settings");
+        Tab settingsTab = new Tab("Podešavanja");
         settingsTab.setClosable(false);
         settingsTab.setContent(createSettingsPanel());
         
         // detailed results tab
-        Tab detailedTab = new Tab("Detailed Analysis");
+        Tab detailedTab = new Tab("Detaljna analiza");
         detailedTab.setClosable(false);
         detailedTab.setContent(createDetailedResultsPanel());
         
-        tabPane.getTabs().addAll(resultsTab, detailedTab, settingsTab);
+        // report tab
+        Tab serbianReportTab = new Tab("Izveštaj");
+        serbianReportTab.setClosable(false);
+        serbianReportTab.setContent(createSerbianReportPanel());
+        
+        tabPane.getTabs().addAll(resultsTab, detailedTab, serbianReportTab, settingsTab);
         mainLayout.setCenter(tabPane);
         
         // status bar
@@ -108,12 +113,12 @@ public class HashAnalysisGUI extends Application {
         toolbar.setAlignment(Pos.CENTER_LEFT);
         toolbar.getStyleClass().add("toolbar");
 
-        JFXButton analyzeButton = new JFXButton("Analyze Files");
+        JFXButton analyzeButton = new JFXButton("Analiziraj fajlove");
         analyzeButton.setGraphic(new FontIcon(MaterialDesignF.FILE_DOCUMENT));
         analyzeButton.getStyleClass().add("button-primary");
         analyzeButton.setOnAction(e -> analyzeFiles());
 
-        JFXButton exportButton = new JFXButton("Export Results");
+        JFXButton exportButton = new JFXButton("Export rezultata");
         exportButton.setGraphic(new FontIcon(MaterialDesignF.FILE_EXPORT));
         exportButton.getStyleClass().add("button-secondary");
         exportButton.setOnAction(e -> exportResults());
@@ -130,14 +135,14 @@ public class HashAnalysisGUI extends Application {
         // Iterations setting
         HBox iterationsBox = new HBox(10);
         iterationsBox.setAlignment(Pos.CENTER_LEFT);
-        Label iterationsLabel = new Label("Iterations:");
+        Label iterationsLabel = new Label("Broj iteracija:");
         Spinner<Integer> iterationsSpinner = new Spinner<>(new SpinnerValueFactory.IntegerSpinnerValueFactory(1000, 1000000, 10000, 1000));
         iterationsBox.getChildren().addAll(iterationsLabel, iterationsSpinner);
 
         // Threads setting
         HBox threadsBox = new HBox(10);
         threadsBox.setAlignment(Pos.CENTER_LEFT);
-        Label threadsLabel = new Label("Threads:");
+        Label threadsLabel = new Label("Threads (niti):");
         Spinner<Integer> threadsSpinner = new Spinner<>(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 16, 4, 1));
         threadsBox.getChildren().addAll(threadsLabel, threadsSpinner);
 
@@ -155,7 +160,7 @@ public class HashAnalysisGUI extends Application {
         progressBar.setVisible(false);
         progressBar.setPrefWidth(200);
 
-        statusLabel = new Label("Ready");
+        statusLabel = new Label("Spremno za analizu");
         statusLabel.getStyleClass().add("status-label");
 
         statusBar.getChildren().addAll(progressBar, statusLabel);
@@ -172,11 +177,11 @@ public class HashAnalysisGUI extends Application {
         avalancheTable = new TableView<>();
         
         CategoryAxis xAxis = new CategoryAxis();
-        xAxis.setLabel("Bit Position");
+        xAxis.setLabel("Bit pozicija");
         NumberAxis yAxis = new NumberAxis();
-        yAxis.setLabel("Bit Count");
+        yAxis.setLabel("Broj bitova");
         bitDistChart = new BarChart<>(xAxis, yAxis);
-        bitDistChart.setTitle("Bit Distribution Analysis");
+        bitDistChart.setTitle("Analiza distribucije bitova");
         bitDistChart.setLegendVisible(true);
         bitDistChart.setAnimated(false);
 
@@ -184,20 +189,20 @@ public class HashAnalysisGUI extends Application {
         VBox collisionPanel = new VBox(10);
         collisionPanel.setPadding(new Insets(10));
         collisionTable.setEditable(false);
-        collisionTable.setPlaceholder(new Label("Run analysis to see collision test results"));
+        collisionTable.setPlaceholder(new Label("Pokrenite analizu da biste videli rezultate testa kolizija"));
         
         // Hash Function: The name of the hash algorithm being analyzed
-        TableColumn<CollisionData, String> hashCol = new TableColumn<>("Hash Function");
+        TableColumn<CollisionData, String> hashCol = new TableColumn<>("Hash funkcija");
         hashCol.setCellValueFactory(data -> data.getValue().hashNameProperty());
         hashCol.setPrefWidth(200);
 
         // Collisions Found: The number of times two different inputs produced the same hash (collision) during testing
-        TableColumn<CollisionData, Integer> collisionsCol = new TableColumn<>("Collisions Found");
+        TableColumn<CollisionData, Integer> collisionsCol = new TableColumn<>("Pronađene kolizije");
         collisionsCol.setCellValueFactory(data -> data.getValue().collisionsProperty().asObject());
         collisionsCol.setPrefWidth(150);
 
         // Collision Rate: The ratio of collisions to total tests (lower is better)
-        TableColumn<CollisionData, Double> rateCol = new TableColumn<>("Collision Rate");
+        TableColumn<CollisionData, Double> rateCol = new TableColumn<>("Stopa kolizija");
         rateCol.setCellValueFactory(data -> data.getValue().rateProperty().asObject());
         rateCol.setPrefWidth(150);
         rateCol.setCellFactory(col -> new TableCell<>() {
@@ -214,22 +219,22 @@ public class HashAnalysisGUI extends Application {
 
         collisionTable.getColumns().addAll(hashCol, collisionsCol, rateCol);
         collisionPanel.getChildren().add(collisionTable);
-        TitledPane collisionPane = new TitledPane("Collision Analysis", collisionPanel);
+        TitledPane collisionPane = new TitledPane("Analiza kolizija", collisionPanel);
         collisionPane.setExpanded(true);
 
         // Avalanche Effect Section
         VBox avalanchePanel = new VBox(10);
         avalanchePanel.setPadding(new Insets(10));
         avalancheTable.setEditable(false);
-        avalancheTable.setPlaceholder(new Label("Run analysis to see avalanche effect results"));
+        avalancheTable.setPlaceholder(new Label("Pokrenite analizu da biste videli rezultate testa avalanche efekta"));
 
         // Hash Function: The name of the hash algorithm being analyzed
-        TableColumn<AvalancheData, String> hashCol2 = new TableColumn<>("Hash Function");
+        TableColumn<AvalancheData, String> hashCol2 = new TableColumn<>("Hash funkcija");
         hashCol2.setCellValueFactory(data -> data.getValue().hashNameProperty());
         hashCol2.setPrefWidth(200);
 
         // Avalanche Effect: The average proportion of output bits that change when a single input bit is flipped (higher is better)
-        TableColumn<AvalancheData, Double> effectCol = new TableColumn<>("Avalanche Effect");
+        TableColumn<AvalancheData, Double> effectCol = new TableColumn<>("Avalanche efekat");
         effectCol.setCellValueFactory(data -> data.getValue().effectProperty().asObject());
         effectCol.setPrefWidth(150);
         effectCol.setCellFactory(col -> new TableCell<>() {
@@ -244,8 +249,7 @@ public class HashAnalysisGUI extends Application {
             }
         });
 
-        // Standard Deviation: The variability of the avalanche effect (lower means more consistent avalanche behavior)
-        TableColumn<AvalancheData, Double> stdDevCol = new TableColumn<>("Standard Deviation");
+        TableColumn<AvalancheData, Double> stdDevCol = new TableColumn<>("Standardna devijacija");
         stdDevCol.setCellValueFactory(data -> data.getValue().stdDevProperty().asObject());
         stdDevCol.setPrefWidth(150);
         stdDevCol.setCellFactory(col -> new TableCell<>() {
@@ -262,7 +266,7 @@ public class HashAnalysisGUI extends Application {
 
         avalancheTable.getColumns().addAll(hashCol2, effectCol, stdDevCol);
         avalanchePanel.getChildren().add(avalancheTable);
-        TitledPane avalanchePane = new TitledPane("Avalanche Effect Analysis", avalanchePanel);
+        TitledPane avalanchePane = new TitledPane("Analiza avalanche efekta", avalanchePanel);
         avalanchePane.setExpanded(true);
 
         // Bit Distribution Section
@@ -270,7 +274,7 @@ public class HashAnalysisGUI extends Application {
         bitDistPanel.setPadding(new Insets(10));
 
         // placeholder label
-        Label placeholder = new Label("Run analysis to see bit distribution results");
+        Label placeholder = new Label("Pokrenite analizu da biste videli rezultate analize distribucije bitova");
         placeholder.setStyle("-fx-font-size: 14px; -fx-text-fill: gray;");
 
         // Use StackPane to overlay placeholder on chart
@@ -286,16 +290,132 @@ public class HashAnalysisGUI extends Application {
         });
 
         bitDistPanel.getChildren().add(chartContainer);
-        TitledPane bitDistPane = new TitledPane("Bit Distribution Analysis", bitDistPanel);
+        TitledPane bitDistPane = new TitledPane("Analiza distribucije bitova", bitDistPanel);
         bitDistPane.setExpanded(true);
 
         panel.getChildren().addAll(collisionPane, avalanchePane, bitDistPane);
         return panel;
     }
 
+    private VBox createSerbianReportPanel() {
+        VBox panel = new VBox(20);
+        panel.setPadding(new Insets(20));
+        panel.getStyleClass().add("detailed-results-panel");
+
+        // Create text area for Serbian report
+        TextArea reportArea = new TextArea();
+        reportArea.setEditable(false);
+        reportArea.setWrapText(true);
+        reportArea.setPrefRowCount(30);
+        reportArea.setPrefColumnCount(80);
+        reportArea.getStyleClass().add("report-text-area");
+
+        // Update report content when results change
+        results.addListener((ListChangeListener<HashBenchmark.BenchmarkResult>) change -> {
+            StringBuilder report = new StringBuilder();
+            report.append("=== IZVEŠTAJ O ANALIZI HASH FUNKCIJA ===\n\n");
+            
+            // Individual analysis for each hash function
+            report.append("DETALJNA ANALIZA PO HASH FUNKCIJAMA:\n");
+            report.append("=====================================\n\n");
+            
+            for (HashBenchmark.BenchmarkResult result : results) {
+                report.append(String.format("Hash funkcija: %s\n", result.getHashName()));
+                report.append(String.format("Brzina: %.2f ms\n", result.getSpeed()));
+                report.append(String.format("Avalanche efekat: %.4f\n", result.getAvalancheEffect()));
+                report.append(String.format("Stopa kolizija: %.6f\n", result.getCollisionRate()));
+                report.append(String.format("Dužina hasha: %d bita\n", result.getHashLength()));
+                
+                // Add interpretation
+                report.append("\nInterpretacija rezultata:\n");
+                report.append("- Brzina: ");
+                if (result.getSpeed() < 1.0) {
+                    report.append("Izuzetno brza izvršavanja\n");
+                } else if (result.getSpeed() < 5.0) {
+                    report.append("Dobra brzina izvršavanja\n");
+                } else {
+                    report.append("Sporija izvršavanja\n");
+                }
+                
+                report.append("- Avalanche efekat: ");
+                if (result.getAvalancheEffect() > 0.5) {
+                    report.append("Odličan avalanche efekat, mala promena ulaza dovodi do velike promene izlaza\n");
+                } else if (result.getAvalancheEffect() > 0.3) {
+                    report.append("Dobar avalanche efekat\n");
+                } else {
+                    report.append("Slabiji avalanche efekat\n");
+                }
+                
+                report.append("- Stopa kolizija: ");
+                if (result.getCollisionRate() < 0.0001) {
+                    report.append("Izuzetno niska stopa kolizija\n");
+                } else if (result.getCollisionRate() < 0.001) {
+                    report.append("Prihvatljiva stopa kolizija\n");
+                } else {
+                    report.append("Povećana stopa kolizija\n");
+                }
+                
+                report.append("\n");
+            }
+
+            // Overall analysis
+            report.append("\nSVEUKUPNA ANALIZA I PREPORUKE:\n");
+            report.append("==============================\n\n");
+            
+            // Find best performing hash function in each category
+            HashBenchmark.BenchmarkResult fastest = results.stream()
+                .min(Comparator.comparingDouble(HashBenchmark.BenchmarkResult::getSpeed))
+                .orElse(null);
+                
+            HashBenchmark.BenchmarkResult bestAvalanche = results.stream()
+                .max(Comparator.comparingDouble(HashBenchmark.BenchmarkResult::getAvalancheEffect))
+                .orElse(null);
+                
+            HashBenchmark.BenchmarkResult lowestCollision = results.stream()
+                .min(Comparator.comparingDouble(HashBenchmark.BenchmarkResult::getCollisionRate))
+                .orElse(null);
+
+            report.append("Najbolje performanse po kategorijama:\n");
+            if (fastest != null) {
+                report.append(String.format("- Najbrži algoritam: %s (%.2f ms)\n", 
+                    fastest.getHashName(), fastest.getSpeed()));
+            }
+            if (bestAvalanche != null) {
+                report.append(String.format("- Najbolji avalanche efekat: %s (%.4f)\n", 
+                    bestAvalanche.getHashName(), bestAvalanche.getAvalancheEffect()));
+            }
+            if (lowestCollision != null) {
+                report.append(String.format("- Najniža stopa kolizija: %s (%.6f)\n", 
+                    lowestCollision.getHashName(), lowestCollision.getCollisionRate()));
+            }
+
+            // Overall recommendation
+            report.append("\nPreporuka za korišćenje:\n");
+            report.append("Za opštu upotrebu i sigurnost, preporučuje se korišćenje hash funkcije koja ");
+            report.append("kombinuje dobru brzinu izvršavanja sa niskom stopom kolizija i dobrim avalanche efektom.\n");
+            report.append("Na osnovu analize, najbolje performanse pokazuje kombinacija sledećih karakteristika:\n");
+            report.append("1. Brzina izvršavanja ispod 5ms\n");
+            report.append("2. Avalanche efekat iznad 0.4\n");
+            report.append("3. Stopa kolizija ispod 0.0001\n\n");
+            
+            report.append("Za specifične slučajeve upotrebe:\n");
+            report.append("- Za aplikacije koje zahtevaju maksimalnu brzinu: " + 
+                (fastest != null ? fastest.getHashName() : "N/A") + "\n");
+            report.append("- Za aplikacije koje zahtevaju maksimalnu sigurnost: " + 
+                (lowestCollision != null ? lowestCollision.getHashName() : "N/A") + "\n");
+            report.append("- Za aplikacije koje zahtevaju dobar avalanche efekat: " + 
+                (bestAvalanche != null ? bestAvalanche.getHashName() : "N/A") + "\n");
+
+            reportArea.setText(report.toString());
+        });
+
+        panel.getChildren().add(reportArea);
+        return panel;
+    }
+
     private void analyzeFiles() {
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Select Files to Analyze");
+        fileChooser.setTitle("Izaberite fajlove za analizu");
         fileChooser.setInitialDirectory(new File("files"));
         fileChooser.getExtensionFilters().add(
             new FileChooser.ExtensionFilter("All Files", "*.*")
@@ -305,7 +425,7 @@ public class HashAnalysisGUI extends Application {
         if (selectedFiles != null && !selectedFiles.isEmpty()) {
             progressBar.setVisible(true);
             progressBar.setProgress(0);
-            statusLabel.setText("Analyzing files...");
+            statusLabel.setText("Analiziram fajlove...");
 
             // clear previous results
             results.clear();
@@ -335,7 +455,7 @@ public class HashAnalysisGUI extends Application {
                 .whenComplete((v, ex) -> {
                     Platform.runLater(() -> {
                         progressBar.setVisible(false);
-                        statusLabel.setText("Analysis complete");
+                        statusLabel.setText("Analiza završena");
                         displayResults();
                         updateDetailedResults();
                     });
@@ -379,7 +499,7 @@ public class HashAnalysisGUI extends Application {
                         // Update progress bar
                         completedTasks[0]++;
                         progressBar.setProgress(completedTasks[0] / totalTasks);
-                        statusLabel.setText(String.format("Analyzing... (%.0f%%)", 100 * completedTasks[0] / totalTasks));
+                        statusLabel.setText(String.format("Analiziram... (%.0f%%)", 100 * completedTasks[0] / totalTasks));
                     });
                 } catch (Exception e) {
                     Platform.runLater(() -> {
@@ -447,21 +567,39 @@ public class HashAnalysisGUI extends Application {
         collisionChart.getData().add(collisionSeries);
 
         // set chart sizes
-        speedChart.setPrefSize(500, 350); // Larger chart
-        avalancheChart.setPrefSize(500, 350); // Larger chart
-        collisionChart.setPrefSize(500, 350); // Larger chart
+        speedChart.setPrefSize(500, 350); // Reverted to original size
+        avalancheChart.setPrefSize(500, 350); // Reverted to original size
+        collisionChart.setPrefSize(500, 350); // Reverted to original size
 
         // create container for charts
-        HBox chartsBox = new HBox(20);
+        HBox chartsBox = new HBox(20); // Reverted to HBox for horizontal layout
         chartsBox.setPadding(new Insets(20));
         chartsBox.setAlignment(Pos.CENTER);
         chartsBox.getChildren().addAll(speedChart, avalancheChart, collisionChart);
+
+        // Add tooltips to charts
+        addTooltipsToChart(speedChart, "ms");
+        addTooltipsToChart(avalancheChart, "");
+        addTooltipsToChart(collisionChart, "");
 
         // add charts to results container
         resultsContainer.getChildren().add(chartsBox);
 
         // update detailed results
         updateDetailedResults();
+    }
+
+    private void addTooltipsToChart(BarChart<String, Number> chart, String unit) {
+        for (XYChart.Series<String, Number> series : chart.getData()) {
+            for (XYChart.Data<String, Number> data : series.getData()) {
+                Tooltip tooltip = new Tooltip();
+                tooltip.setText(String.format("%s: %.4f%s", 
+                    data.getXValue(), 
+                    data.getYValue().doubleValue(),
+                    unit));
+                Tooltip.install(data.getNode(), tooltip);
+            }
+        }
     }
 
     private void updateDetailedResults() {
@@ -565,6 +703,31 @@ public class HashAnalysisGUI extends Application {
                         data.effectProperty().get(),
                         data.stdDevProperty().get()
                     );
+                }
+
+                // Write Serbian report
+                writer.println("\n\n=== IZVEŠTAJ O ANALIZI HASH FUNKCIJA ===");
+                writer.println("\nRezultati performansi:");
+                for (HashBenchmark.BenchmarkResult result : results) {
+                    writer.printf("\nHash funkcija: %s\n", result.getHashName());
+                    writer.printf("Brzina: %.2f ms\n", result.getSpeed());
+                    writer.printf("Avalanche efekat: %.4f\n", result.getAvalancheEffect());
+                    writer.printf("Stopa kolizija: %.6f\n", result.getCollisionRate());
+                    writer.printf("Dužina hasha: %d bita\n", result.getHashLength());
+                }
+
+                writer.println("\nRezultati testa kolizija:");
+                for (CollisionData data : collisionTable.getItems()) {
+                    writer.printf("\nHash funkcija: %s\n", data.hashNameProperty().get());
+                    writer.printf("Pronađene kolizije: %d\n", data.collisionsProperty().get());
+                    writer.printf("Stopa kolizija: %.6f\n", data.rateProperty().get());
+                }
+
+                writer.println("\nRezultati avalanche efekta:");
+                for (AvalancheData data : avalancheTable.getItems()) {
+                    writer.printf("\nHash funkcija: %s\n", data.hashNameProperty().get());
+                    writer.printf("Avalanche efekat: %.4f\n", data.effectProperty().get());
+                    writer.printf("Standardna devijacija: %.4f\n", data.stdDevProperty().get());
                 }
 
                 Platform.runLater(() -> {

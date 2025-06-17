@@ -272,3 +272,18 @@
 .default-color5.chart-bar {
   -fx-bar-fill: #009688;
 }
+
+.report-text-area {
+  -fx-font-family: "Segoe UI", Arial, sans-serif;
+  -fx-font-size: 14px;
+  -fx-background-color: #ffffff;
+  -fx-text-fill: #424242;
+  -fx-padding: 10px;
+  -fx-border-color: #e0e0e0;
+  -fx-border-width: 1px;
+  -fx-border-radius: 4px;
+}
+
+.report-text-area .content {
+  -fx-background-color: #ffffff;
+}

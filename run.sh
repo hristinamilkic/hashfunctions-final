@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Check if Java is installed
+# proveri da li je java instalirana
 if ! command -v java &> /dev/null; then
     echo "Error: Java is not installed. Please install Java 17 or later."
     exit 1
 fi
 
-# Check if Maven is installed
+# proveri da li je maven instaliran
 if ! command -v mvn &> /dev/null; then
     echo "Error: Maven is not installed. Please install Maven 3.6 or later."
     exit 1
